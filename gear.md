@@ -1,6 +1,8 @@
 # Block Authoring in Vara Network
 ## 1. Introduction
-This article focuses on Gear Protocol's extension of Substrate's `BlockBuilder` implementation. We will be looking at Substrate's native implementation first and afterwards explore how and why Gear Protocol chose to extend it.
+
+**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this enables Gear's message queue feature, facilitating efficient asynchronous messaging and delayed contract execution, among other capabilities. We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
+
 ## 2. Block Authoring with Substrate
 ### 2.1 The `BlockBuilder` Utility
 The `BlockBuilder` utility is used by the `Proposer` in the Substrate node as an abstraction over the runtime API to initialize a block, push extrinsics, and finalize a block. The `Proposer` leverages the `BlockBuilder` to orchestrate the block production process, ensuring extrinsics are managed and applied correctly, and the block is constructed and finalized properly. An essential part of this process is the bundling of transactions, referred to as extrinsics in Substrate, which include signed transactions, unsigned transactions, and inherent transactions. Inherent transactions, typically just referred to as inherents, are a special type of unsigned transaction that allows block authoring nodes to add information directly to a block. The block authoring process with the `BlockBuilder` utility is depicted in the diagram below in a slightly simplified form.
@@ -33,9 +35,10 @@ sequenceDiagram
     deactivate BlockBuilder
 ```
 The important steps where the `Proposer` interacts with the `BlockBuilder` are:
-1. **Initialize BlockBuilder**: The `Proposer` initializes a `BlockBuilder` with references to the runtime API and necessary state information.   
+
+1. **Initialize BlockBuilder**: The `Proposer` initializes a `BlockBuilder` with references to the runtime API and necessary state information.
 2. **Applying Inherents**: Inherent extrinsics are created using the `create_inherents` method and added to the new block using `push`.
-3. **Applying Extrinsics**: The `Proposer` then iteratively adds extrinsics from the transaction pool to the block. The `BlockBuilder` interacts with the runtime API to apply each extrinsic to the blockchain state by calling methods like `apply_extrinsic`. This ensures each extrinsic can be validly executed, before including it in the new block. During this process, the `Proposer` uses the `BlockBuilder`'s `estimate_blocksize` method to monitor the current size of the block. The `Proposer` stops adding extrinsics if the block size approaches the block size limit or if the consensus deadline is near.
+3. **Applying Extrinsics**: The `Proposer` then iteratively adds extrinsics from the transaction pool to the block. The `BlockBuilder` interacts with the runtime API to apply each extrinsic to the blockchain state by calling methods like `apply_extrinsic`. This ensures each extrinsic can be validly executed before including it in the new block. During this process, the `Proposer` uses the `BlockBuilder`'s `estimate_blocksize` method to monitor the current size of the block. The `Proposer` stops adding extrinsics if the block size approaches the block size limit or if the consensus deadline is near.
 4. **Finalize Block**: The block is finalized using the `build` method, which completes the block construction and produces the final block structure ready for inclusion in the blockchain.
 ### 2.2 Time and Size Constraints
 When the `Proposer` authors a block using the `BlockBuilder` in Substrate, two key constraints need to be managed: the consensus deadline and the block size limit.
@@ -106,7 +109,7 @@ Specifically, the `NORMAL_DISPATCH_RATIO` runtime constant is changed from $80\\
 
 ![Substrate-vs-Gear-Block](/substrate-vs-gear-block.svg)
 
-In general, we want to try to allow `Gear::run` to take up this $75\\%$ of the total block. Therefore, the default gas allowance for `Gear::run` is set to $75\\%$ of the  block:
+In general, we aim to allow `Gear::run` to occupy this $75\\%$ of the total block. Therefore, an additional constant `DEFAULT_GAS_ALLOWANCE` for `Gear::run` is introduced, which accounts for this in units of gas (another representation of weight):
 ```rust
 pub const DEFAULT_GAS_ALLOWANCE: u64 = 750_000_000_000;
 ```
@@ -114,10 +117,6 @@ pub const DEFAULT_GAS_ALLOWANCE: u64 = 750_000_000_000;
 ## 3.3 Deadline Slippage and `max_gas` Parameter
 Since `Gear::run` assumes it has $75\\%$ of the block's weight available, a mismatch between the used weight and the actual elapsed time could prevent `Gear::run` from completing within the current block. In this scenario, the pseudo-inherent would need to be dropped from the current block.
 
-To address this, the goal is to provide `Gear::run` with a realistic approximation of the remaining time available during the block authoring slot. This is achieved by introducing a `max_gas` parameter, which adjusts for the remaining time in units of gas (another representation of weight).
+To address this, the goal is to provide `Gear::run` with a realistic approximation of the remaining time available during the block authoring slot. This is achieved by introducing a `max_gas` parameter, which adjusts for the remaining time in units of gas, as opposed to the `DEFAULT_GAS_ALLOWANCE` constant.
 
-Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of $10\\%$ would allow applying extrinsics for $35\\%$ of the block proposal duration. This way, `Gear::run` can execute for $75\\%$ of the original proposal duration while exceeding the hard deadline by at most $10\\%$.
-
-## 4. Advantages
-- This new block authoring implementation is currently live in Vara network
-- Enables messages which can be used for example for: delayed program execution(?)
+Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of $10\\%$ would allow applying extrinsics for $35\\%$ of the block proposal duration. This way, `Gear::run` can still execute for $75\\%$ of the original proposal duration while exceeding the hard deadline by at most $10\\%$.

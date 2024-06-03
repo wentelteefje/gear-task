@@ -50,7 +50,7 @@ pub enum DispatchClass {
     Mandatory,
 }
 ```
-In Substrate, the runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\%$ by default, meaning that $80\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`. Inherents are typically of type `DispatchClass::Mandatory`.
+In Substrate, the runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\\%$ by default, meaning that $80\\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`. Inherents are typically of type `DispatchClass::Mandatory`.
 
 Both time and block size (i.e., weight) constraints are related because weight is defined as units of computation per time. Therefore, theoretically, it is possible to measure time in terms of weight, and vice versa. However, in practice, this relationship is not perfect, and both approaches are needed together to maintain consistent block production.
 
@@ -102,21 +102,21 @@ pub fn push_final(&mut self, max_gas: Option<u64>) -> Result<(), Error>
 
 Since processing the message queue takes a considerable amount of time, Gear Protocol's block design is adjusted to accommodate this by altering the ratio of extrinsics included in a single block.
 
-Specifically, the `NORMAL_DISPATCH_RATIO` runtime constant is changed from $80\%$ to $25\%$, allowing up to $25\%$ of the block weight to be filled by extrinsics of type `DispatchClass::Normal`. This adjustment leaves the remaining block weight for extrinsics of `DispatchClass::Mandatory` and `DispatchClass::Operational`. However, since there are no `DispatchClass::Operational` extrinsics in Gear Protocol, `Gear::run` can effectively utilize up to $75\%$ of the block's total weight.
+Specifically, the `NORMAL_DISPATCH_RATIO` runtime constant is changed from $80\\%$ to $25\\%$, allowing up to $25\\%$ of the block weight to be filled by extrinsics of type `DispatchClass::Normal`. This adjustment leaves the remaining block weight for extrinsics of `DispatchClass::Mandatory` and `DispatchClass::Operational`. However, since there are no `DispatchClass::Operational` extrinsics in Gear Protocol, `Gear::run` can effectively utilize up to $75\\%$ of the block's total weight.
 
 ![Substrate-vs-Gear-Block](/substrate-vs-gear-block.svg)
 
-In general, we want to try to allow `Gear::run` to take up this $75\%$ of the total block. Therefore, the default gas allowance for `Gear::run` is set to $75\%$ of the  block:
+In general, we want to try to allow `Gear::run` to take up this $75\\%$ of the total block. Therefore, the default gas allowance for `Gear::run` is set to $75\\%$ of the  block:
 ```rust
 pub const DEFAULT_GAS_ALLOWANCE: u64 = 750_000_000_000;
 ```
 
 ## 3.3 Deadline Slippage and `max_gas` Parameter
-Since `Gear::run` assumes it has 75% of the block's weight available, a mismatch between the used weight and the actual elapsed time could prevent `Gear::run` from completing within the current block. In this scenario, the pseudo-inherent would need to be dropped from the current block.
+Since `Gear::run` assumes it has $75\\%$ of the block's weight available, a mismatch between the used weight and the actual elapsed time could prevent `Gear::run` from completing within the current block. In this scenario, the pseudo-inherent would need to be dropped from the current block.
 
 To address this, the goal is to provide `Gear::run` with a realistic approximation of the remaining time available during the block authoring slot. This is achieved by introducing a `max_gas` parameter, which adjusts for the remaining time in units of gas (another representation of weight).
 
-Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of 10% would allow applying extrinsics for 35% of the block proposal duration. This way, `Gear::run` can execute for 75% of the original proposal duration while exceeding the hard deadline by at most 10%.
+Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of $10\\%$ would allow applying extrinsics for $35\\%$ of the block proposal duration. This way, `Gear::run` can execute for $75\\%$ of the original proposal duration while exceeding the hard deadline by at most $10\\%$.
 
 ## 4. Advantages
 - This new block authoring implementation is currently live in Vara network

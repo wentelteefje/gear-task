@@ -1,7 +1,7 @@
 # Block Authoring in Vara Network
 ## 1. Introduction
 
-**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this important enhancement allows for Gear's message queue feature, facilitating efficient asynchronous messaging and delayed contract execution, among other capabilities. We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
+**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this important enhancement allows for Gear's message queue feature, a core component of Gear's Actor model. We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
 
 ## 2. Block Authoring with Substrate
 ### 2.1 The `BlockBuilder` Utility

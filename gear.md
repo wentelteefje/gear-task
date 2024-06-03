@@ -1,7 +1,7 @@
 # Block Authoring in Vara Network
 ## 1. Introduction
 
-**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this enables Gear's message queue feature, facilitating efficient asynchronous messaging and delayed contract execution, among other capabilities. We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
+**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this important enhancement allows for Gear's message queue feature, facilitating efficient asynchronous messaging and delayed contract execution, among other capabilities. We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
 
 ## 2. Block Authoring with Substrate
 ### 2.1 The `BlockBuilder` Utility
@@ -120,3 +120,5 @@ Since `Gear::run` assumes it has $75\\%$ of the block's weight available, a mism
 To address this, the goal is to provide `Gear::run` with a realistic approximation of the remaining time available during the block authoring slot. This is achieved by introducing a `max_gas` parameter, which adjusts for the remaining time in units of gas, as opposed to the `DEFAULT_GAS_ALLOWANCE` constant.
 
 Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of $10\\%$ would allow applying extrinsics for $35\\%$ of the block proposal duration. This way, `Gear::run` can still execute for $75\\%$ of the original proposal duration while exceeding the hard deadline by at most $10\\%$.
+# 4. Conclusion
+In summary, the custom block authoring in Gear Protocol utilizing the `Gear::run` pseudo-inherent provides substantial enhancements to Substrate, facilitating efficient asynchronous messaging and delayed contract execution. These advancements open up new possibilities for dApp development, which users can explore on [Vara Network](https://vara.network/).

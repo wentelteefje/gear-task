@@ -1,16 +1,9 @@
-+++
-title = 'Gear'
-date = 2024-05-31T14:44:26+02:00
-draft = true
-math = true
-+++
-
 # Block Authoring in Vara Network
 ## 1. Introduction
 This article focuses on Gear Protocol's extension of Substrate's `BlockBuilder` implementation. We will be looking at Substrate's native implementation first and afterwards explore how and why Gear Protocol chose to extend it.
 ## 2. Block Authoring with Substrate
 ### 2.1 The `BlockBuilder` Utility
-The `BlockBuilder` utility is used by the `Proposer` in the Substrate node as an abstraction over the runtime API to initialize a block, push extrinsics, and finalize a block. The `Proposer` leverages the `BlockBuilder` to orchestrate the block production process, ensuring extrinsics are managed and applied correctly, and the block is constructed and finalized properly. An essential part of this process is the bundling of transactions, referred to as extrinsics in Substrate, which include signed transactions, unsigned transactions, and inherent transactions. Inherent transactions, typically just referred to as inherents, are a special type of unsigned transaction. With this type of transaction, block authoring nodes can add information directly to a block. The block authoring process with the `BlockBuilder` utility is depicted in the diagram below in a slightly simplified form.
+The `BlockBuilder` utility is used by the `Proposer` in the Substrate node as an abstraction over the runtime API to initialize a block, push extrinsics, and finalize a block. The `Proposer` leverages the `BlockBuilder` to orchestrate the block production process, ensuring extrinsics are managed and applied correctly, and the block is constructed and finalized properly. An essential part of this process is the bundling of transactions, referred to as extrinsics in Substrate, which include signed transactions, unsigned transactions, and inherent transactions. Inherent transactions, typically just referred to as inherents, are a special type of unsigned transaction that allows block authoring nodes to add information directly to a block. The block authoring process with the `BlockBuilder` utility is depicted in the diagram below in a slightly simplified form.
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
@@ -45,11 +38,11 @@ The important steps where the `Proposer` interacts with the `BlockBuilder` are:
 3. **Applying Extrinsics**: The `Proposer` then iteratively adds extrinsics from the transaction pool to the block. The `BlockBuilder` interacts with the runtime API to apply each extrinsic to the blockchain state by calling methods like `apply_extrinsic`. This ensures each extrinsic can be validly executed, before including it in the new block. During this process, the `Proposer` uses the `BlockBuilder`'s `estimate_blocksize` method to monitor the current size of the block. The `Proposer` stops adding extrinsics if the block size approaches the block size limit or if the consensus deadline is near.
 4. **Finalize Block**: The block is finalized using the `build` method, which completes the block construction and produces the final block structure ready for inclusion in the blockchain.
 ### 2.2 Time and Size Constraints
-When the `Proposer` authors a block using the `BlockBuilder` in Substrate, two key constraints need to be managed: the consensus deadline and block size limit.
+When the `Proposer` authors a block using the `BlockBuilder` in Substrate, two key constraints need to be managed: the consensus deadline and the block size limit.
 
-The consensus deadline ensures that a block is proposed within a specific timeframe to maintain the overall pace of block production and synchronization across the network. During the block production process, the `Proposer` monitors the time and ensures that the block is finalized and submitted before the deadline. Additionally, a soft deadline is used to provide a secondary timing mechanism to decide when to stop attempting to include more extrinsics into a block. The soft deadline is calculated as a percentage of the remaining time until the consensus deadline, allowing for some flexibility in extrinsics inclusion. The soft deadline therefore provides a buffer period during which the `Proposer` attempts to include a few more extrinsics, even if it has skipped some due to size constraints. In this way the soft deadline ensures that blocks are efficiently filled while adhering to the overall time constraints imposed by the consensus protocol. 
+The consensus deadline ensures that a block is proposed within a specific timeframe to maintain the overall pace of block production and synchronization across the network. During the block production process, the `Proposer` monitors the time and ensures that the block is finalized and submitted before the deadline. Additionally, a soft deadline is used as a secondary timing mechanism to decide when to stop attempting to include more extrinsics in a block. The soft deadline is calculated as a percentage of the remaining time until the consensus deadline, providing some flexibility in extrinsics inclusion. This buffer period allows the `Proposer` to include a few more extrinsics, even if some have been skipped due to size constraints. In this way, the soft deadline ensures that blocks are efficiently filled while adhering to the overall time constraints imposed by the consensus protocol.
 
-In Substrate the block size is measured in units of `weight`. Substrate defines one unit of weight as one picosecond ($10^{-12}s$) of execution time on reference hardware. The total block size limit is structured further by the introduction of a `DispatchClass` for extrinsics:
+In Substrate, the block size is measured in units of `weight`. Substrate defines one unit of weight as one picosecond ($10^{-12}$ seconds) of execution time on reference hardware. The total block size limit is further structured by introducing a `DispatchClass` for extrinsics:
 ```rust
 pub enum DispatchClass {
     Normal,
@@ -57,15 +50,15 @@ pub enum DispatchClass {
     Mandatory,
 }
 ```
-In Substrate the runtime constant `NORMAL_DISPATCH_RATIO` is set to $75\\%$ by default, which means that $75\\%$ of the block weight should be made up by extrinsics of type `DispatchClass::Normal`. The remaining $25\\%$ can be used up by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`. Inherents are typically of type `DispatchClass::Mandatory`.
+In Substrate, the runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\%$ by default, meaning that $80\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`. Inherents are typically of type `DispatchClass::Mandatory`.
 
-Both time and block size (i.e. weight) constraints are related in the sense that, weight is defined as units of compute per time. Therefore, theoretically, it's possible to measure time in terms of weight, and vice versa. In reality though, this often does not work perfectly and we need both approaches together to maintain consistent block production.
+Both time and block size (i.e., weight) constraints are related because weight is defined as units of computation per time. Therefore, theoretically, it is possible to measure time in terms of weight, and vice versa. However, in practice, this relationship is not perfect, and both approaches are needed together to maintain consistent block production.
 
 ## 3. Block Authoring with `Gear Protocol`
 ### 3.1 Custom `BlockBuilder` Implementation in Gear Protocol
-In Gear Protocol there exists a special inherent called `Gear::run` (the "pseudo-inherent"), which is responsible for processing Gear's message queue. In Gear Protocol messages serve as the primary interface for communication between actors (users and programs). Each Gear program includes code to handle incoming messages. During the processing of these messages, programs can send messages to other programs or users, including replies to the original message. Gear nodes maintain a global message queue. Users can send transactions containing one or more messages to specific programs via a Gear node, which populates the message queue. During block authoring, messages are dequeued and delivered to their respective programs.
+In Gear Protocol, there exists a special inherent called `Gear::run` (also known as the pseudo-inherent), responsible for processing Gear's message queue. In Gear Protocol, messages serve as the primary interface for communication between actors (users and programs). Each Gear program includes code to handle incoming messages. During message processing, programs can send messages to other programs or users, including replies to the original message. Gear nodes maintain a global message queue. Users can send transactions containing one or more messages to specific programs via a Gear node, which populates the message queue. During block authoring, messages are dequeued and delivered to their respective programs by `Gear::run`.
 
-The `Gear::run` pseudo-inherent must be added at the end of each block after all other extrinsics have been pushed. Furthermore, to ensure consistent block production, this pseudo-inherent must not exceed the block proposing deadline defined by the node client. To account for these requirements, Gear Protocol extended Substrate's `BlockBuilder` and `Proposer` implementations. The diagram below highlights the changes as opposed to Substrate's native implementation.
+The `Gear::run` pseudo-inherent must be added at the end of each block after all other extrinsics have been pushed. To accommodate these requirements, Gear Protocol extends Substrate's `BlockBuilder` and `Proposer` implementations. The diagram below highlights the changes in the block authoring workflow compared to Substrate's native implementation.
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
@@ -98,15 +91,33 @@ sequenceDiagram
     BlockBuilder-->>Proposer: return finished Block
     deactivate BlockBuilder
 ```
+Including the `Gear::run` inherent in the block is achieved through a new method called `push_final`, which retrieves the pseudo-inherent using the runtime API and appends it to the end of the block's list of extrinsics.
 
-As an additional step, the `push_final` method is called to fetch the pseudo-inherent via the runtime API and push it to the end of the block's list of extrinsics. The `max_gas` parameter is used to adjust the gas budget for `Gear::run`.
+```rust
+pub fn push_final(&mut self, max_gas: Option<u64>) -> Result<(), Error>
 
-Explain these three concepts in the text and then you're finished:
-- `max_gas: Option<u64>`,
-- `deadline_slippage: DurationMultiplier`,
-- `dispatch_ratio: DurationMultiplier`
+```
 
-- Mention Vara network
-- `Gear::run()`: https://docs.gear.rs/src/pallet_gear/lib.rs.html#1574
+## 3.2 Changes to the Block Structure
+
+Since processing the message queue takes a considerable amount of time, Gear Protocol's block design is adjusted to accommodate this by altering the ratio of extrinsics included in a single block.
+
+Specifically, the `NORMAL_DISPATCH_RATIO` runtime constant is changed from $80\%$ to $25\%$, allowing up to $25\%$ of the block weight to be filled by extrinsics of type `DispatchClass::Normal`. This adjustment leaves the remaining block weight for extrinsics of `DispatchClass::Mandatory` and `DispatchClass::Operational`. However, since there are no `DispatchClass::Operational` extrinsics in Gear Protocol, `Gear::run` can effectively utilize up to $75\%$ of the block's total weight.
+
+![Substrate-vs-Gear-Block](/substrate-vs-gear-block.svg)
+
+In general, we want to try to allow `Gear::run` to take up this $75\%$ of the total block. Therefore, the default gas allowance for `Gear::run` is set to $75\%$ of the  block:
+```rust
+pub const DEFAULT_GAS_ALLOWANCE: u64 = 750_000_000_000;
+```
+
+## 3.3 Deadline Slippage and `max_gas` Parameter
+Since `Gear::run` assumes it has 75% of the block's weight available, a mismatch between the used weight and the actual elapsed time could prevent `Gear::run` from completing within the current block. In this scenario, the pseudo-inherent would need to be dropped from the current block.
+
+To address this, the goal is to provide `Gear::run` with a realistic approximation of the remaining time available during the block authoring slot. This is achieved by introducing a `max_gas` parameter, which adjusts for the remaining time in units of gas (another representation of weight).
+
+Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of 10% would allow applying extrinsics for 35% of the block proposal duration. This way, `Gear::run` can execute for 75% of the original proposal duration while exceeding the hard deadline by at most 10%.
+
 ## 4. Advantages
+- This new block authoring implementation is currently live in Vara network
 - Enables messages which can be used for example for: delayed program execution(?)

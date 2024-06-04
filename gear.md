@@ -1,7 +1,7 @@
 # Block Authoring in Vara Network
 ## 1. Introduction
 
-**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this important enhancement allows for Gear's message queue feature, a core component of Gear's Actor model. We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
+**Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this important enhancement allows for Gear's message queue feature, a core component of Gear's [Actor model](https://wiki.gear-tech.io/docs/gear/technology/actor-model/). We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
 
 ## 2. Block Authoring with Substrate
 ### 2.1 The `BlockBuilder` Utility
@@ -53,7 +53,7 @@ pub enum DispatchClass {
     Mandatory,
 }
 ```
-In Substrate, the runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\\%$ by default, meaning that $80\\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`. Inherents are typically of type `DispatchClass::Mandatory`.
+In Substrate, the runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\\%$ by default, meaning that $80\\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`.
 
 Both time and block size (i.e., weight) constraints are related because weight is defined as units of computation per time. Therefore, theoretically, it is possible to measure time in terms of weight, and vice versa. However, in practice, this relationship is not perfect, and both approaches are needed together to maintain consistent block production.
 
@@ -121,4 +121,4 @@ To address this, the goal is to provide `Gear::run` with a realistic approximati
 
 Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of $10\\%$ would allow applying extrinsics for $35\\%$ of the block proposal duration. This way, `Gear::run` can still execute for $75\\%$ of the original proposal duration while exceeding the hard deadline by at most $10\\%$.
 # 4. Conclusion
-In summary, the custom block authoring in Gear Protocol utilizing the `Gear::run` pseudo-inherent provides substantial enhancements to Substrate, facilitating efficient asynchronous messaging and delayed contract execution. These advancements open up new possibilities for dApp development, which users can explore on [Vara Network](https://vara.network/).
+In summary, the custom block authoring in Gear Protocol utilizing the `Gear::run` pseudo-inherent provides substantial enhancements to Substrate, with efficient asynchronous messaging and delayed contract execution being just two examples. These advancements open up new and exciting possibilities for dApp development, which users can explore on [Vara Network](https://vara.network/).

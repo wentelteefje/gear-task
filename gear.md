@@ -45,7 +45,7 @@ When the `Proposer` authors a block using the `BlockBuilder` in Substrate, two k
 
 The consensus deadline ensures that a block is proposed within a specific timeframe to maintain the overall pace of block production and synchronization across the network. During the block production process, the `Proposer` monitors the time and ensures that the block is finalized and submitted before the deadline. Additionally, a soft deadline is used as a secondary timing mechanism to decide when to stop attempting to include more extrinsics in a block. The soft deadline is calculated as a percentage of the remaining time until the consensus deadline, providing some flexibility in extrinsics inclusion. This buffer period allows the `Proposer` to include a few more extrinsics, even if some have been skipped due to size constraints. In this way, the soft deadline ensures that blocks are efficiently filled while adhering to the overall time constraints imposed by the consensus protocol.
 
-In Substrate, the block size is measured in units of `weight`. Substrate defines one unit of weight as one picosecond ($10^{-12}$ seconds) of execution time on reference hardware. The total block size limit is further structured by introducing a `DispatchClass` for extrinsics:
+The block size in Substrate is measured in units of `weight`. One unit of weight is defined as one picosecond ($10^{-12}$ seconds) of execution time on reference hardware. The total block size limit is further structured by introducing a `DispatchClass` for extrinsics:
 ```rust
 pub enum DispatchClass {
     Normal,
@@ -53,7 +53,7 @@ pub enum DispatchClass {
     Mandatory,
 }
 ```
-In Substrate, the runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\\%$ by default, meaning that $80\\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`.
+The runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\\%$ by default, meaning that $80\\%$ of the block weight should be comprised of extrinsics of type `DispatchClass::Normal`. The remaining $20\\%$ can be used by extrinsics of type `DispatchClass::Operational` and `DispatchClass::Mandatory`.
 
 Both time and block size (i.e., weight) constraints are related because weight is defined as units of computation per time. Therefore, theoretically, it is possible to measure time in terms of weight, and vice versa. However, in practice, this relationship is not perfect, and both approaches are needed together to maintain consistent block production.
 

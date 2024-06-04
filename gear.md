@@ -58,7 +58,7 @@ The runtime constant `NORMAL_DISPATCH_RATIO` is set to $80\\%$ by default, meani
 Both time and block size (i.e., weight) constraints are related because weight is defined as units of computation per time. Therefore, theoretically, it is possible to measure time in terms of weight, and vice versa. However, in practice, this relationship is not perfect, and both approaches are needed together to maintain consistent block production.
 
 ## 3. Block Authoring with `Gear Protocol`
-### 3.1 Custom `BlockBuilder` Implementation in Gear Protocol
+### 3.1 Custom `BlockBuilder` Implementation
 In Gear Protocol, there exists a special inherent called `Gear::run` (also known as the pseudo-inherent), responsible for processing Gear's message queue. In Gear Protocol, messages serve as the primary interface for communication between actors (users and programs). Each Gear program includes code to handle incoming messages. During message processing, programs can send messages to other programs or users, including replies to the original message. Gear nodes maintain a global message queue. Users can send transactions containing one or more messages to specific programs via a Gear node, which populates the message queue. During block authoring, messages are dequeued and delivered to their respective programs by `Gear::run`.
 
 The `Gear::run` pseudo-inherent must be added at the end of each block after all other extrinsics have been pushed. To accommodate these requirements, Gear Protocol extends Substrate's `BlockBuilder` and `Proposer` implementations. The diagram below highlights the changes in the block authoring workflow compared to Substrate's native implementation.
@@ -101,7 +101,7 @@ pub fn push_final(&mut self, max_gas: Option<u64>) -> Result<(), Error>
 
 ```
 
-## 3.2 Changes to the Block Structure
+### 3.2 Changes to the Block Structure
 
 Since processing the message queue takes a considerable amount of time, Gear Protocol's block design is adjusted to accommodate this by altering the ratio of extrinsics included in a single block.
 
@@ -114,11 +114,11 @@ In general, we aim to allow `Gear::run` to occupy this $75\\%$ of the total bloc
 pub const DEFAULT_GAS_ALLOWANCE: u64 = 750_000_000_000;
 ```
 
-## 3.3 Deadline Slippage and `max_gas` Parameter
+### 3.3 Deadline Slippage and `max_gas` Parameter
 Since `Gear::run` assumes it has $75\\%$ of the block's weight available, a mismatch between the used weight and the actual elapsed time could prevent `Gear::run` from completing within the current block. In this scenario, the pseudo-inherent would need to be dropped from the current block.
 
 To address this, the goal is to provide `Gear::run` with a realistic approximation of the remaining time available during the block authoring slot. This is achieved by introducing a `max_gas` parameter, which adjusts for the remaining time in units of gas, as opposed to the `DEFAULT_GAS_ALLOWANCE` constant.
 
 Additionally, a `deadline_slippage` parameter is introduced, which acts as a "relaxed" version of the `NORMAL_DISPATCH_RATIO` runtime constant. By default, Substrate allocates $1/3$ of the slot duration for block finalization. Since this time is rarely fully utilized, it is possible to exceed the hard deadline to some degree. For example, a `deadline_slippage` of $10\\%$ would allow applying extrinsics for $35\\%$ of the block proposal duration. This way, `Gear::run` can still execute for $75\\%$ of the original proposal duration while exceeding the hard deadline by at most $10\\%$.
-# 4. Conclusion
+## 4. Conclusion
 In summary, the custom block authoring in Gear Protocol utilizing the `Gear::run` pseudo-inherent provides substantial enhancements to Substrate, with efficient asynchronous messaging and delayed contract execution being just two examples. These advancements open up new and exciting possibilities for dApp development, which users can explore on [Vara Network](https://vara.network/).

@@ -1,11 +1,14 @@
 # Block Authoring in Vara Network
+
+![Vara-Heading](/VaraNetworkDarkPost.png)
+
 ## 1. Introduction
 
 **Vara Network** is a standalone Layer 1 decentralized network built on top of Gear Protocol, which is itself based on Substrate. In this article, we will explore how Gear Protocol's custom block authoring implementation differs from the native Substrate implementation and how this important enhancement allows for Gear's message queue feature, a core component of Gear's [Actor model](https://wiki.gear-tech.io/docs/gear/technology/actor-model/). We will begin by examining Substrate's block authoring process and then move on to how it is implemented in Gear Protocol.
 
 ## 2. Block Authoring with Substrate
 ### 2.1 The `BlockBuilder` Utility
-The `BlockBuilder` utility is used by the `Proposer` in the Substrate node as an abstraction over the runtime API to initialize a block, push extrinsics, and finalize a block. The `Proposer` leverages the `BlockBuilder` to orchestrate the block production process, ensuring extrinsics are managed and applied correctly, and the block is constructed and finalized properly. An essential part of this process is the bundling of transactions, referred to as extrinsics in Substrate, which include signed transactions, unsigned transactions, and inherent transactions. Inherent transactions, typically just referred to as inherents, are a special type of unsigned transaction that allows block authoring nodes to add information directly to a block. The block authoring process with the `BlockBuilder` utility is depicted in the diagram below in a slightly simplified form.
+The `BlockBuilder` utility is used by the `Proposer` in the Substrate node as an abstraction over the runtime API to initialize a block, push transactions, and finalize a block. In Substrate, transactions are referred to as extrinsics, which include signed transactions, unsigned transactions, and inherent transactions. The `Proposer` leverages the `BlockBuilder` to orchestrate the block production process, ensuring extrinsics are managed and applied correctly, and the block is constructed and finalized properly. Inherent transactions, typically just referred to as inherents, are a special type of unsigned transaction that allows block authoring nodes to add information directly to a block. The block authoring process with the `BlockBuilder` utility is depicted in the diagram below in a slightly simplified form.
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
